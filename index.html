@@ -1,0 +1,186 @@
+<!DOCTYPE html>	
+<html>
+<head>
+  <script src="https://unpkg.com/vue/dist/vue.js"></script>
+  <script src="https://unpkg.com/vuetify/dist/vuetify.js"></script>
+  	<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.3/socket.io.js"></script>
+	<link href='https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Material+Icons' rel="stylesheet">
+	 <link href="https://unpkg.com/vuetify/dist/vuetify.min.css" rel="stylesheet">
+	 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+	<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+	<title> OmegleClone - Talk to strangers ! </title>
+<link rel="icon" type="image/png" href="chat.png" />
+
+</head>
+<body>
+	<div id="app">
+<template>
+	  <v-app id="inspire">
+	    </v-navigation-drawer>
+	    <v-toolbar color="blue" dark fixed app>
+	   	 <v-toolbar-title  >OmegleClone</v-toolbar-title>
+	   	 <h4>  </h4>
+	   	 <p style="position: absolute; right: 1%"> {{ phase }}  <br> {{ clientsNbr }} connectés </p>
+	      <v-spacer></v-spacer>
+	    </v-toolbar>
+	    <main>
+	       <v-content>
+	       		<div class="text-xs-center" v-if="accueil">
+	       			<br> <br>
+	       			<h1> Omegle Clone </h1>
+	       			<p> This is a clone of omegle made in JavaScript.</p>
+	    		  	<v-btn  v-on:click="search()" large color="primary" dark> SEARCH </v-btn> 
+	       			<br> <br> <br> <p> Technos : <br> node.js + express + socket.io <br>   vue.js + vuetify     <br> heroku for hosting  <br>  mongodb for database </p> 	    	
+					<a href="https://github.com/iErcann" class="fa fa-github" style="font-size:36px"></a>
+
+	    	    </div>
+
+	    	    <div v-if="chat">
+ 						  <button class="w3-button w3-border w3-hover-blue" style="position: absolute; width: 17.5%; bottom: 10px;  height: 7%;" v-on:click="search">Skip</button>
+		 				  <textarea   id="textarea"  style="position: absolute; bottom: 10px; left:17.5%; width: 65%; height: 7%; font-size: 100% " v-on:keyup.13="sendMessage"> </textarea> 
+		  				  <button id="send"  class="w3-button w3-border w3-hover-blue" v-on:click="sendMessage" style="position: absolute; width: 17.5%; bottom: 10px; left:82.5%; height: 7%;">Send</button>
+
+					<div id="scroll">  
+						 <h3 class="chat" v-for="msg in msgs"> {{ msg }}</h3>
+					</div>
+ 				</div>
+ 				<div v-if="searching" class="text-xs-center" >  
+ 					<br> <br> <br> <br> <br> <br> <br> <br>
+ 					<img  style="height: 10%; width: 10%" src="https://mir-s3-cdn-cf.behance.net/project_modules/disp/ab79a231234507.564a1d23814ef.gif">
+ 				</div>	
+
+
+	      </v-content>
+	    </main>
+	    <v-footer color="blue" app v-if="accueil">
+	      <v-spacer></v-spacer>
+	      <span class="white--text">&copy; 2017</span>
+	    </v-footer>
+	  </v-app>
+	</template>
+	</div>
+</body>
+<style>
+	textarea {
+		resize: none;
+	}
+	html {
+	  overflow-y: scroll;
+	}
+	div#scroll {
+		left : 40px;
+		position: absolute;
+	    width: 100%;
+	    height: 80%;
+	    overflow-y: scroll;
+        user-select: none;
+        -moz-user-select: none;
+        -khtml-user-select: none;
+        -webkit-user-select: none;
+        -o-user-select: none;
+	}
+	h3.chat {
+		font-size: 20px;
+		font-weight: 500;
+
+	}
+	button {
+	 	background-color: #4CAF50; /* Green */
+	    border: none;
+	    color: white;
+	    padding: 15px 32px;
+	    text-align: center;
+	    text-decoration: none;
+	    display: inline-block;
+	    font-size: 16px;
+	}
+</style>
+<script>
+console.log("https://github.com/iErcann");
+console.log("index.html started....");
+
+var socket = io.connect();
+socket.emit("connection");  
+socket.on("id", function(data) {
+	app.id = data;  
+})
+socket.on("strangerFound", function(strangerId) {
+	app.searching = false;
+	app.accueil = false;
+	app.chat = true;
+	app.phase = "Chat";
+	app.strangerId = strangerId;
+	app.msgs.push("New chat started...")
+})
+ 
+socket.on("newMessage", function(msg) {
+ 	app.msgs.push("Stranger: " + msg);
+  	app.scrollDown();
+})
+socket.on("alert", function(msg) {
+	alert(msg)
+})
+socket.on("strangerSkip", function(data) {
+	app.msgs.push("Stranger have skipped.... Searching new user..");
+	setTimeout(function() {
+		app.strangerId = "";
+		app.search();
+	}, 1000)
+})
+
+socket.on("clientsNbr", function(data) {
+	app.clientsNbr = data;
+})
+ 
+ 
+
+var app = new Vue({
+  el: '#app',
+  data: {
+ 	slt : "ok",
+ 	id : "",
+ 	strangerId : "",
+ 	accueil : true,
+ 	searching : false,
+ 	chat : false,
+ 	msgs : [],
+ 	phase : "Accueil",
+ 	clientsNbr : 0
+  },
+  methods: {
+  	search() {
+ 			if (this.strangerId != "") {
+				socket.emit('skip',{ id : this.id, strangerId : this.strangerId } );
+  			}
+		     
+  			this.strangerId = "";
+  			this.chat = false;
+  			this.accueil = false;
+  			this.searching = true;
+  			socket.emit("messages", this.msgs)
+  			this.msgs = [];
+  			this.phase = "Searching..";
+  			socket.emit("searching", this.id);
+  		},
+  	sendMessage(){
+	  		var textarea_value = document.getElementById("textarea").value; 
+	  		document.getElementById("textarea").value = "";
+	  		this.msgs.push("You: " + textarea_value);
+	  		this.scrollDown();
+	  		socket.emit('sendMessage', { msg : textarea_value, strangerId: this.strangerId });
+   		},
+
+	scrollDown(){
+		setTimeout(function() {  
+			var l = document.getElementsByClassName("chat").length;
+			document.getElementsByClassName("chat")[l-1].scrollIntoView();
+		}, 10)
+	}
+
+
+
+  	}
+})	
+ </script>
+</html>
